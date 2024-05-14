@@ -1,4 +1,8 @@
 import { GIF } from '/static/js/gif.js'
+
+var canvas_width
+var canvas_height
+
 class Vector {
     constructor(x0, y0, x1, y1) {
         this.len = Vector.len_(x0, y0, x1, y1)
@@ -20,19 +24,43 @@ class SmallFish {
         this.y = y;
         this.w = 120;
         this.h = 75;
-        this.radius = 4; // Bán kính của cá nhỏ
-        this.speed = 1; // Tốc độ di chuyển
+        this.centx = this.x + this.w / 2
+        this.centy = this.y + this.h / 2
+        this.speed = 1.5; // Tốc độ di chuyển
         // Các thuộc tính khác nếu cần
         this.src = 'static/gif/giphy.gif';
         this.image = GIF();
         this.image.load(this.src);
         this.in_shoal = false
+        this.vector = new Vector(0, 0, 0, 0)
+        this.ran_time = Math.random() * 1000
+        this.flip = false
+        this.targetX = Math.random() * 10000 % canvas_width
+        this.targetY = Math.random() * 10000 % canvas_height
     }
 
+    moveToTarget() {
+        let thres = 2
+        if (Vector.len_(this.centx, this.centy, this.targetX, this.targetY) > thres) {
+            this.centx += this.vector.x * this.speed
+            this.centy += this.vector.y * this.speed
+        }
+        this.x = this.centx - this.w / 2
+        this.y = this.centy - this.h / 2
+    }
     draw(context) {
         // Vẽ cá nhỏ
         if (!this.image.loading) {
-            context.drawImage(this.image.image, this.x, this.y, this.w, this.h);
+
+            context.save();
+            if (this.flip) {
+                context.translate(this.x + this.w, this.y);
+                context.scale(-1, 1);
+                context.drawImage(this.image.image, 0, 0, this.w, this.h);
+            } else {
+                context.drawImage(this.image.image, this.x, this.y, this.w, this.h);
+            }
+            context.restore();
         }
 
     }
@@ -42,8 +70,25 @@ class SmallFish {
 
         }
         else {
+            if (this.ran_time > 0) {
+                this.ran_time -= 1;
+            }
+            else {
+                this.targetX = Math.random() * 10000 % canvas_width
+                this.targetY = Math.random() * 10000 % canvas_height
+                this.vector = new Vector(this.x, this.y, this.targetX, this.targetY)
+                this.ran_time = Math.random() * 1000;
+            }
 
         }
+
+        if (this.centx < this.targetX) {
+            this.flip = false;
+        }
+        else {
+            this.flip = true;
+        }
+        this.moveToTarget();
         // Cập nhật vị trí của cá nhỏ
         // Có thể thêm logic di chuyển cho cá nhỏ ở đây
     }
@@ -69,6 +114,7 @@ class BigFish {
         this.image = GIF();
         this.image.load(this.src);
 
+        this.flip = false;
 
     }
     init(canvas, bigFish) {
@@ -90,11 +136,20 @@ class BigFish {
         this.x = this.centx - this.w / 2
         this.y = this.centy - this.h / 2
 
-        console.log(this.x, this.y, this.targetX, this.targetY);
+
     }
     draw(context) {
         if (!this.image.loading) {
-            context.drawImage(this.image.image, this.x, this.y, this.w, this.h);
+
+            context.save();
+            if (this.flip) {
+                context.translate(this.x + this.w, this.y);
+                context.scale(-1, 1);
+                context.drawImage(this.image.image, 0, 0, this.w, this.h);
+            } else {
+                context.drawImage(this.image.image, this.x, this.y, this.w, this.h);
+            }
+            context.restore();
         }
     }
 
@@ -102,6 +157,12 @@ class BigFish {
     update() {
         // Cập nhật vị trí của cá nhỏ
         // Có thể thêm logic di chuyển cho cá nhỏ ở đây
+        if (this.centx < this.targetX) {
+            this.flip = false;
+        }
+        else {
+            this.flip = true;
+        }
         this.moveToTarget();
 
 
@@ -112,8 +173,8 @@ class BigFish {
 window.onload = function () {
     const canvas = document.getElementById('gameCanvas');
     const context = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas_width = canvas.width = window.innerWidth;
+    canvas_height = canvas.height = window.innerHeight;
     // Tạo một con cá lớn
     const bigFish = new BigFish(0, 0);
     bigFish.init(canvas, bigFish);
@@ -137,6 +198,7 @@ window.onload = function () {
         y = canvas.height / 2;
     });
     function draw() {
+
         context.clearRect(0, 0, canvas.width, canvas.height);
 
         // Vẽ con cá lớn
